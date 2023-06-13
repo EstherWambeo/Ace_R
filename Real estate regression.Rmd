@@ -1,0 +1,46 @@
+---
+title: "Real estate"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+real_estate<-read.csv("kc_house_data.csv")
+```
+
+**Exploratory Data Analysis**
+
+```{r}
+#plot of relationship between prices and condition
+x<-real_estate$condition
+y<-real_estate$price
+plot(x,y,main="Relationship between price and condition of housng",
+     xlab="condition", ylab="Price of the house")
+```
+
+The plot shows the condition ranked 3 to have a high effect on 
+the price of the house 
+
+
+
+**Regression Modeling**
+
+```{r}
+#How does the condition of a house affect the home sale price?
+model<-lm(real_estate$price~real_estate$condition)
+summary(model)
+```
+From the regression model,the p-value is 1.157e-07 which is less 0.05 and therefore it is unlikely we will observe a relationship between the predictor (conditions) and response (price) variables due to chance implying the test is significant and further we reject the true null hypothesis and conclude that the Conditions of a house have an effect on the home sale price.
+
+it takes an average house in our dataset 470868 conditions for the prices to be affected and for every 1 increase in the condition of a house, the Sale price of the house goes up by 20361.
+
+The adjusted r squared is 0.001254 which implies roughly 0.12% of the variance found in the response variable (price) can be explained by the predictor variable (condition)
+
+The standard error shows the required condition  for the price of the house to be affected can vary by  3840 
+
+
+
+

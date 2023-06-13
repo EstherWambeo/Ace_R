@@ -1,0 +1,157 @@
+---
+title: "lab 2 kc housing"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+real_estate<-read.csv("kc_house_data 2.csv")
+real_estate$price_per_sqft <- real_estate$price/real_estate$sqft_living
+real_estate$top_zip <- as.integer(real_estate$zipcode == 98004)
+real_estate$top_5_zip <- as.integer(real_estate$zipcode == 98004 | real_estate$zipcode == 98005| real_estate$zipcode == 98052 | real_estate$zipcode == 98121 | real_estate$zipcode == 98109)
+real_estate$top_10_zip <- as.integer(real_estate$zipcode == 98004 | real_estate$zipcode == 98005| real_estate$zipcode == 98052 | real_estate$zipcode == 98121 | real_estate$zipcode == 98109 |real_estate$zipcode == 98007 | real_estate$zipcode == 98122 | real_estate$zipcode == 98029 | real_estate$zipcode == 98102 | real_estate$zipcode == 98103)
+real_estate$top_15_zip <- as.integer(real_estate$zipcode == 98004 | real_estate$zipcode == 98005| real_estate$zipcode == 98052 | real_estate$zipcode == 98121 | real_estate$zipcode == 98109 |real_estate$zipcode == 98007 | real_estate$zipcode == 98122 | real_estate$zipcode == 98029 | real_estate$zipcode == 98102 | real_estate$zipcode == 98103 | real_estate$zipcode == 98006 | real_estate$zipcode == 98033 | real_estate$zipcode == 98074 | real_estate$zipcode == 98040 | real_estate$zipcode == 98101)
+real_estate$top_20_zip <- as.integer(real_estate$zipcode == 98004 | real_estate$zipcode == 98005| real_estate$zipcode == 98052 | real_estate$zipcode == 98121 | real_estate$zipcode == 98109 |real_estate$zipcode == 98007 | real_estate$zipcode == 98122 | real_estate$zipcode == 98029 | real_estate$zipcode == 98102 | real_estate$zipcode == 98103 |  real_estate$zipcode == 98006 | real_estate$zipcode == 98033 | real_estate$zipcode == 98074 | real_estate$zipcode == 98040 | real_estate$zipcode == 98101 | real_estate$zipcode == 98115 | real_estate$zipcode == 98112 | real_estate$zipcode == 98107 | real_estate$zipcode == 98119 | real_estate$zipcode == 98105)
+```
+
+
+```{r}
+#plot of relationship between price per square ft and condition
+y<-real_estate$price_per_sqft
+x1<-real_estate$condition
+plot(x1,y,main="Relationship between price per square ft and condition of housng",
+     xlab="condition", ylab="Price per square ft of the house")
+```
+
+The plot shows the condition ranked 3 to have a high effect on 
+the price per square ft of the house
+
+
+
+```{r}
+#Regression Modeling
+#How does the condition of a house affect the home sale price?
+model1<-lm(real_estate$price_per_sqft~real_estate$condition)
+summary(model1)
+```
+
+
+
+From the regression model,the p-value is 2.2e-16 which is less 0.05 
+unlikely we will observe a relationship between the predictor (conditions) and response (price) variables due to chance implying the test is significant and further we reject the true null 
+hypothesis and conclude that the Conditions of a house have an effect on the home sale price per square ft.
+
+It takes an average house in our dataset 204.634 conditions for the prices per sqr feet to be affected
+for every 1 increase in the condition of a house, the Sale price per square feet of the house goes up by 17.452.
+The adjusted r squared is 0.01061 which implies roughly 0.10% of the variance found in the response variable (price per square feet) can be explained by the predictor variable (condition)
+
+The standard error shows the required condition  for the price per square ft of the house to be affected can vary by  109.4
+
+
+
+```{r}
+##Exploratory data analysis
+#plot of relationship between prices and bedrooms
+x2<-real_estate$bedrooms
+y<-real_estate$price_per_sqft
+plot(x2,y,main="Relationship between price per sqr ft and number of bedrooms",
+     xlab="bedrooms", ylab="Price per square ft of the house")
+```
+
+The plot is skewwd to the left with most ratings centered between 1 and 10 bedrooms
+
+```{r}
+#plot of relationship between price per square ft and size of living room
+x3<-real_estate$sqft_living
+plot(x3,y,main="Relationship between price per square ft and sqft_living",
+     xlab="sqft_living", ylab="Price per square ft of the house")
+```
+
+There is a slight skew to the left with most ratings centered between 0 and 6000
+
+
+
+```{r}
+#plot of relationship between price per square ft and square above the ground
+x4<-real_estate$sqft_above
+plot(x4,y,main="Relationship between price per square ft and sqft_above",
+     xlab="sqft_above", ylab="Price per square ft of the house")
+```
+
+There is a slight skew to the left with most ratings centered between 2000 and 4000
+
+```{r}
+#plot of relationship between price per square ft and floors
+x5<-real_estate$floors
+plot(x5,y,main="Relationship between price per square ft and floors",
+     xlab="floors", ylab="Price per square ft of the house")
+```
+
+
+There is a slight skew to the left with most ratings centered between 1 and 2.0 floors
+
+
+
+```{r}
+#plot of relationship between price per square ft and  grade
+x6<-real_estate$grade
+plot(x6,y,main="Relationship between price per square ft and grade",
+     xlab="grade", ylab="Price per square ft of the house")
+```
+
+There is a slight skew to the right with most ratings centered between grade 5 and 12
+
+
+
+```{r}
+#plot of relationship between price per square ft and top 20 zip
+x7<-real_estate$top_20_zip
+plot(x7,y,main="Relationship between price per square ft and top 20 zip",
+     xlab="top 20 zip code", ylab="Price per square ft of the house")
+```
+
+There is a slight skew to the left with most ratings symmetric between 0.0 and 1.0
+
+
+
+```{r}
+#plot of relationship between price per square ft and number of bathrooms
+x8<-real_estate$bathrooms
+plot(x8,y,main="Relationship between price per square ft and bathrooms",
+     xlab="bathrooms", ylab="Price per square ft of the house")
+```
+
+There is a slight skew to the left with most ratings centered between 1 and 4
+
+
+
+```{r}
+##Asuumptions
+model2<-lm(price_per_sqft~condition+bedrooms+bathrooms+top_20_zip+grade+floors+sqft_above
+           +sqft_living,data = real_estate)
+summary(model2)
+```
+
+
+From the regression model,the p-value is 2.2e-16 which is less 0.05 
+unlikely we will observe a relationship between the predictors and 
+response  variables due to chance
+
+
+
+```{r}
+#Diagonistics
+par(mfrow = c(2, 2))
+plot(model2)
+
+##IID Assumption
+plot(model2, 1)
+```
+
+The residual plot  shows no fitted pattern between the residuals 
+and the fitted values hence IID
+
+
