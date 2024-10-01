@@ -1,0 +1,142 @@
+---
+title: "Ozone Exercise"
+author: "Jana"
+date: "2024-09-10"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,warning=FALSE}
+#load necessary library
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+#load data
+data <- read.csv("data/ozone_(2).csv")
+str(data)
+```
+
+**1. Overall Summary Statistics**
+
+```{r}
+# Melt the data to make it easier to calculate overall metrics
+data_long <- data %>%
+  pivot_longer(cols = starts_with("Day"), names_to = "Day", values_to = "Ozone")
+
+# Calculate overall mean, standard deviation, and percent missing
+overall_mean <- mean(data_long$Ozone, na.rm = TRUE)
+overall_sd <- sd(data_long$Ozone, na.rm = TRUE)
+percent_missing <- sum(is.na(data_long$Ozone)) / nrow(data_long) * 100
+
+overall_stats <- data.frame(
+  Overall_Mean = overall_mean,
+  Overall_SD = overall_sd,
+  Percent_Missing = percent_missing
+)
+
+print(overall_stats)
+```
+
+The overall mean ozone value across all monitoring stations and days in July 2005 is 51.27 units, indicating the average daily ozone level. The standard deviation is 17.26, showing that ozone levels fluctuate with moderate variability from the mean. Additionally, about 4.32% of the ozone values are missing, representing a small proportion of the total dataset.
+
+
+**2. Per-Site Statistics**
+
+```{r}
+# Calculate mean, variance, and percent missing for each site
+site_stats <- data %>%
+  rowwise() %>%
+  mutate(
+    Mean_Ozone = mean(c_across(starts_with("Day")), na.rm = TRUE),
+    Variance_Ozone = var(c_across(starts_with("Day")), na.rm = TRUE),
+    Percent_Missing = sum(is.na(c_across(starts_with("Day")))) / 31 * 100
+  ) %>%
+  ungroup() %>%
+  select(Station.ID, Mean_Ozone, Variance_Ozone, Percent_Missing)
+
+#display the firts 5 observations
+
+head(site_stats)
+```
+
+**3. Histograms**
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Mean_Ozone)) + 
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") + 
+  labs(title = "Histogram of Mean Ozone Values", x = "Mean Ozone", y = "Frequency")
+```
+
+The histogram is skewed to the left,indicating that most sites have ozone levels higher than the overall mean, with fewer sites having low mean values.
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Variance_Ozone)) + 
+  geom_histogram(binwidth = 5, fill = "green", color = "black") + 
+  labs(title = "Histogram of Variance in Ozone Values", x = "Variance", y = "Frequency")
+```
+
+The histogram is skewed to the left,suggesting that most sites have relatively low variability in ozone levels, while a few exhibit higher variance.
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Percent_Missing)) + 
+  geom_histogram(binwidth = 1, fill = "red", color = "black") + 
+  labs(title = "Histogram of Percent Missing Ozone Values", x = "Percent Missing", y = "Frequency")
+```
+
+The histogram is skewed to the left,shows that most sites have a low percentage of missing data, with only a few sites having higher rates of missing values.
+
+
+**4. Scatter Plots**
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Variance_Ozone, y = Mean_Ozone)) + 
+  geom_point() + 
+  labs(title = "Mean Ozone vs Variance", x = "Variance", y = "Mean Ozone")
+```
+
+Most sites have a lower variance in ozone levels and tend to cluster around mean values ranging broadly from 25 to 75. A small number of sites exhibit much higher variance, with the mean ozone levels for these sites generally on the higher side, suggesting that higher mean ozone values might be associated with greater fluctuations in daily ozone levels.
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Percent_Missing, y = Mean_Ozone)) + 
+  geom_point() + 
+  labs(title = "Mean Ozone vs Percent Missing", x = "Percent Missing", y = "Mean Ozone")
+```
+
+Sites with lower percentages of missing data exhibit a broader range of mean ozone values, whereas sites with higher percentages of missing data tend to report lower mean ozone levels, with some exceptions at very high missing data rates.
+
+
+```{r,warning=FALSE}
+ggplot(site_stats, aes(x = Percent_Missing, y = Variance_Ozone)) + 
+  geom_point() + 
+  labs(title = "Variance vs Percent Missing", x = "Percent Missing", y = "Variance")
+```
+
+Sites with lower percentages of missing data typically exhibit a wide range of variance in ozone levels, while those with higher percentages of missing data generally have lower variance, with a few outliers having high variance.`
+
+**5. Linear Regression**
+
+```{r}
+model <- lm(Mean_Ozone ~ Variance_Ozone + Percent_Missing, data = site_stats)
+summary(model)
+
+```
+
+Intercept (48.59): When both variance and percent missing are zero, the expected mean ozone value is approximately 48.59.
+
+Variance_Ozone (0.0171): This positive coefficient suggests that for each unit increase in variance, the mean ozone level increases by approximately 0.0171 units. This indicates a small positive relationship between the variability in ozone levels and their average values.
+
+Percent_Missing (-0.1054): The negative coefficient indicates that sites with a higher percentage of missing data tend to have lower mean ozone values. Specifically, each percentage point increase in missing data is associated with a decrease of about 0.1054
+
+Both predictors are statistically significant, with the variance showing a particularly strong relationship. This statistical significance indicates that these relationships are unlikely to be due to random chance, even though the overall model's explanatory power is low.
+
+The R-squared value (0.03674) suggests that only about 3.67% of the variability in the mean ozone levels is explained by this model, which is relatively low. This implies that other factors not included in the model might be influencing the mean ozone levels.
+

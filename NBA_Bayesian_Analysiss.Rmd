@@ -1,0 +1,272 @@
+---
+title: "NBA Bayesian Analysis"
+author: "Jana"
+date: "2024-10-01"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load necessary packages
+library(ggplot2)
+```
+
+
+```{r}
+#load data
+NBAclutchFT <- read.csv("C:/Users/user/Desktop/R projects/Preply/2024 Fall/Jana/data/NBAclutchFT.csv")
+str(NBAclutchFT)
+```
+
+**(a) Describe your model including the likelihood and prior.**
+
+The dataset contains data on the number of successful "clutch" free throws made by nine NBA players and the number of attempts in these clutch situations. The aim is to analyze clutch performance for each player using Bayesian methods.
+
+For each player, let *Yi* represent the number of successful clutch free throws, and *Ni* the total number of clutch free throw attempts. We model this as a binomial random variable:
+   Yi|θi ~ Binomial(Ni,θi)
+
+where:
+
+Ni: the number of clutch free throw attempts.
+
+θi: the unknown probability of success (clutch FT percentage) for player i.
+
+Yi: the number of successful clutch free throws.
+
+**Likelihood**
+
+For each player, the likelihood function is a binomial distribution.
+
+**Prior**
+
+The conjugate prior for a binomial likelihood is a Beta distribution:
+
+theta i ∼ Beta (alpha, beta)
+
+Where 𝛼and β are the parameters of the prior, representing prior beliefs about the success rate of free throws. We can start with a non-informative or weakly informative prior such as:
+
+𝛼=1,𝛽=1(Uniform prior over [0,1])
+
+This prior assumes no strong prior knowledge about the clutch free throw percentage.
+
+**(b) Plot the posteriors of the clutch success probabilities.**
+
+```{r}
+# Given data
+players <- c("Nikola Jokic", "Shai Gilgeous-Alexander", "Luka Doncic", 
+             "Giannis Antetokounmpo", "Joel Embiid", "Jayson Tatum", 
+             "Donovan Mitchell", "De'Aaron Fox", "Stephen Curry")
+clutch_makes <- c(36, 35, 19, 39, 28, 33, 23, 14, 29)
+clutch_attempts <- c(44, 39, 25, 53, 37, 40, 31, 19, 34)
+
+# Set prior (weakly informative Beta(1, 1) prior)
+alpha_prior <- 1
+beta_prior <- 1
+
+# Function to compute and plot posterior distributions
+plot_posteriors <- function(makes, attempts, player) {
+  # Posterior parameters
+  alpha_post <- makes + alpha_prior
+  beta_post <- attempts - makes + beta_prior
+  
+  # Generate theta values
+  theta_vals <- seq(0, 1, length.out = 1000)
+  posterior <- dbeta(theta_vals, alpha_post, beta_post)
+  
+  # Plot posterior
+  df <- data.frame(theta = theta_vals, posterior = posterior)
+  ggplot(df, aes(x = theta, y = posterior)) +
+    geom_line(color = "blue") +
+    labs(title = paste("Posterior of clutch FT% for", player),
+         x = expression(theta), y = "Density")
+}
+
+# Plot posteriors for each player
+for (i in 1:length(players)) {
+  print(plot_posteriors(clutch_makes[i], clutch_attempts[i], players[i]))
+}
+```
+
+
+**(c) Summarize the posteriors in a table.**
+
+```{r}
+# Function to compute posterior summary
+posterior_summary <- function(makes, attempts) {
+  alpha_post <- makes + alpha_prior
+  beta_post <- attempts - makes + beta_prior
+  
+  mean_post <- alpha_post / (alpha_post + beta_post)
+  lower_ci <- qbeta(0.025, alpha_post, beta_post)
+  upper_ci <- qbeta(0.975, alpha_post, beta_post)
+  
+  return(c(mean_post, lower_ci, upper_ci))
+}
+
+# Create a summary table
+summary_table <- data.frame(Player = players,
+                            Mean = numeric(length(players)),
+                            `Lower 95% CI` = numeric(length(players)),
+                            `Upper 95% CI` = numeric(length(players)))
+
+for (i in 1:length(players)) {
+  summary_table[i, 2:4] <- posterior_summary(clutch_makes[i], clutch_attempts[i])
+}
+
+# Display summary table
+print(summary_table)
+```
+
+The summary table presents the posterior mean and 95% credible intervals for the clutch free throw percentages of nine NBA players. Shai Gilgeous-Alexander has the highest estimated clutch free throw percentage with a mean of 87.8%, while De'Aaron Fox has the lowest at 71.4%. Nikola Jokic, Jayson Tatum, and Stephen Curry also show strong clutch performances, with means above 80%. The 95% credible intervals indicate the range within which the true clutch free throw percentage likely falls, with Stephen Curry's being particularly high (83.3%, CI: 69.7%-93.4%), showing consistent performance under pressure. Conversely, players like Donovan Mitchell and Luka Doncic have lower clutch percentages and wider credible intervals, suggesting more variability in their clutch performance.
+
+**(d) Test the hypothesis that the clutch proportion is less than the overall proportion.**
+
+```{r}
+# Overall FT percentages (example values; replace with actual data)
+overall_ft_pct <- c(0.817, 0.874, 0.786, 0.657, 0.847, 0.833, 0.836, 0.704, 0.856)
+
+# Function to compute P(θ < overall FT%)
+posterior_prob <- function(makes, attempts, overall_ft) {
+  alpha_post <- makes + alpha_prior
+  beta_post <- attempts - makes + beta_prior
+  
+  prob <- pbeta(overall_ft, alpha_post, beta_post)
+  return(prob)
+}
+
+# Compute posterior probabilities
+posterior_probs <- numeric(length(players))
+for (i in 1:length(players)) {
+  posterior_probs[i] <- posterior_prob(clutch_makes[i], clutch_attempts[i], overall_ft_pct[i])
+}
+
+# Display posterior probabilities
+posterior_probs
+```
+
+The hypothesis test results show strong evidence that Joel Embiid, Donovan Mitchell, Luka Doncic, Jayson Tatum, and Stephen Curry have clutch free throw percentages lower than their overall percentages, with posterior probabilities greater than 0.6, indicating moderate to strong support for this hypothesis. For Nikola Jokic, the evidence is weak, with a probability slightly above 0.5. However, for Shai Gilgeous-Alexander, Giannis Antetokounmpo, and De'Aaron Fox, the results suggest no significant difference between their clutch and overall free throw percentages, as their posterior probabilities are below or around 0.5.
+
+
+**(e) Are the results sensitive to your prior?**
+
+
+comparing three different priors:
+
+Beta(1, 1) (our current uninformative prior).
+
+Beta(5, 5) (a moderately informative prior assuming a mean success rate around 50%).
+
+Beta(10, 10) (a stronger informative prior assuming a mean success rate around 50%).
+
+*Compute Posterior Probabilities for Different Priors*
+
+```{r}
+# Given data for clutch FT
+players <- c("Nikola Jokic", "Shai Gilgeous-Alexander", "Luka Doncic", 
+             "Giannis Antetokounmpo", "Joel Embiid", "Jayson Tatum", 
+             "Donovan Mitchell", "De'Aaron Fox", "Stephen Curry")
+clutch_makes <- c(36, 35, 19, 39, 28, 33, 23, 14, 29)
+clutch_attempts <- c(44, 39, 25, 53, 37, 40, 31, 19, 34)
+
+# Overall FT percentages
+overall_ft_pct <- c(0.817, 0.874, 0.786, 0.657, 0.847, 0.833, 0.836, 0.704, 0.856)
+
+# Function to compute posterior probability with different priors
+posterior_prob_with_prior <- function(makes, attempts, overall_ft, alpha_prior, beta_prior) {
+  alpha_post <- makes + alpha_prior
+  beta_post <- attempts - makes + beta_prior
+  prob <- pbeta(overall_ft, alpha_post, beta_post)
+  return(prob)
+}
+
+# Different priors to test
+priors <- list(c(1, 1), c(5, 5), c(10, 10))
+prior_names <- c("Beta(1,1)", "Beta(5,5)", "Beta(10,10)")
+
+# Create an empty matrix to store posterior probabilities
+posterior_probabilities <- matrix(nrow = length(players), ncol = length(priors))
+
+# Loop through each prior and compute the posterior probabilities for each player
+for (i in 1:length(players)) {
+  for (j in 1:length(priors)) {
+    prior <- priors[[j]]
+    posterior_probabilities[i, j] <- posterior_prob_with_prior(clutch_makes[i], clutch_attempts[i], overall_ft_pct[i], prior[1], prior[2])
+  }
+}
+
+# Convert the matrix to a data frame for easy reading
+posterior_probs_df <- data.frame(
+  Player = players,
+  `Beta(1,1)` = posterior_probabilities[, 1],
+  `Beta(5,5)` = posterior_probabilities[, 2],
+  `Beta(10,10)` = posterior_probabilities[, 3]
+)
+
+# Display the results
+print(posterior_probs_df)
+
+```
+
+The results show that the posterior probabilities are somewhat sensitive to the choice of prior. For players like Nikola Jokic, Shai Gilgeous-Alexander, Luka Doncic, and De'Aaron Fox, the probabilities that their clutch free throw percentages are lower than their overall percentages significantly increase as the prior becomes more informative. This suggests that the data alone isn't strong enough to dominate the prior, making the results sensitive to prior assumptions. However, for players like Joel Embiid and Donovan Mitchell, the results remain consistently high across all priors, indicating robust evidence that their clutch free throw percentages are lower, regardless of the prior used. Overall, stronger priors increase the probability of lower clutch performance for most players.
+
+
+**2. Say that Y|θ ~ Binomial(N,θ) and Z|θ~Binomial(M,θ), and that Y and Z are independent given θ. Identify a conjugate prior for θ and find the corresponding posterior distribution.**
+
+```{r}
+# Set parameters for binomial observations
+N <- 50  # Number of trials for Y
+Y <- 30  # Number of successes in Y
+M <- 40  # Number of trials for Z
+Z <- 20  # Number of successes in Z
+
+# Set prior parameters (Beta prior)
+alpha_prior <- 2  # Prior successes
+beta_prior <- 2   # Prior failures
+
+# Compute posterior parameters
+alpha_post <- alpha_prior + Y + Z
+beta_post <- beta_prior + (N - Y) + (M - Z)
+
+# Generate theta values between 0 and 1
+theta_vals <- seq(0, 1, length.out = 1000)
+
+# Compute the prior and posterior densities
+prior_density <- dbeta(theta_vals, alpha_prior, beta_prior)
+posterior_density <- dbeta(theta_vals, alpha_post, beta_post)
+
+df <- data.frame(theta = theta_vals, 
+                 Prior = prior_density, 
+                 Posterior = posterior_density)
+
+ggplot(df, aes(x = theta)) +
+  geom_line(aes(y = Prior), color = "red", linetype = "dashed") +
+  geom_line(aes(y = Posterior), color = "blue") +
+  labs(title = "Prior vs Posterior Distributions for θ",
+       x = expression(theta), 
+       y = "Density") +
+  theme_minimal()
+
+# Posterior mean and credible interval
+mean_post <- alpha_post / (alpha_post + beta_post)
+median_post <- qbeta(0.5, alpha_post, beta_post)
+lower_ci <- qbeta(0.025, alpha_post, beta_post)
+upper_ci <- qbeta(0.975, alpha_post, beta_post)
+
+# Display summary
+posterior_summary <- data.frame(
+  Mean = mean_post,
+  Median = median_post,
+  `Lower 95% CI` = lower_ci,
+  `Upper 95% CI` = upper_ci
+)
+
+print(posterior_summary)
+
+
+```
+
